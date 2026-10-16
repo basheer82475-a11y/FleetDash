@@ -81,7 +81,7 @@ function App() {
             <button className="icon-button search-button" aria-label="Search"><Search size={19} /></button>
             <button className="icon-button notification-button" aria-label="Notifications"><Bell size={19} /><i /></button>
             <span className="topbar-divider" />
-            <span className="topbar-date">Thursday, October 16, 2026</span>
+            <span className="topbar-date">Friday, October 16, 2026</span>
           </div>
         </header>
 
