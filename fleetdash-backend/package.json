@@ -7,7 +7,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test": "node --test --test-isolation=none"
   },
   "dependencies": {
     "cors": "^2.8.6",
