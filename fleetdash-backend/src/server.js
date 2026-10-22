@@ -6,12 +6,17 @@ const { connectDatabase } = require("./config/database");
 const { closeWorkerPool } = require("./services/telemetryWorkerPool");
 
 async function start() {
-  if (!process.env.MONGO_URI) throw new Error("MONGO_URI must be set before starting the API");
+  if (!process.env.MONGO_URI) {
+    throw new Error("MONGO_URI must be set before starting the API");
+  }
+
   await connectDatabase();
 
   const app = createApp();
   const port = Number(process.env.PORT) || 5000;
-  const server = app.listen(port, () => console.log(`FleetDash API listening on port ${port}`));
+  const server = app.listen(port, () => {
+    console.log(`FleetDash API listening on port ${port}`);
+  });
 
   const shutdown = async (signal) => {
     console.log(`${signal} received; shutting down`);
@@ -21,8 +26,10 @@ async function start() {
       process.exit(0);
     });
   };
+
   process.once("SIGINT", () => shutdown("SIGINT"));
   process.once("SIGTERM", () => shutdown("SIGTERM"));
+
   return server;
 }
 
