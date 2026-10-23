@@ -1,6 +1,8 @@
 require("dotenv").config();
 
 const mongoose = require("mongoose");
+const { createServer } = require("node:http");
+const { Server: SocketIOServer } = require("socket.io");
 const createApp = require("./app");
 const { connectDatabase } = require("./config/database");
 const { closeWorkerPool } = require("./services/telemetryWorkerPool");
@@ -14,23 +16,49 @@ async function start() {
 
   const app = createApp();
   const port = Number(process.env.PORT) || 5000;
-  const server = app.listen(port, () => {
+
+  // Create one HTTP server for Express and Socket.IO.
+  const httpServer = createServer(app);
+
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: "*",
+    },
+  });
+
+  io.on("connection", (socket) => {
+    console.log(`Socket.IO client connected: ${socket.id}`);
+
+    socket.on("disconnect", () => {
+      console.log(`Socket.IO client disconnected: ${socket.id}`);
+    });
+  });
+
+  httpServer.listen(port, () => {
     console.log(`FleetDash API listening on port ${port}`);
   });
 
   const shutdown = async (signal) => {
     console.log(`${signal} received; shutting down`);
-    server.close(async () => {
-      await closeWorkerPool();
-      await mongoose.disconnect();
-      process.exit(0);
+
+    io.close(() => {
+      httpServer.close(async () => {
+        try {
+          await closeWorkerPool();
+          await mongoose.disconnect();
+          process.exit(0);
+        } catch (error) {
+          console.error(`Shutdown failed: ${error.message}`);
+          process.exitCode = 1;
+        }
+      });
     });
   };
 
   process.once("SIGINT", () => shutdown("SIGINT"));
   process.once("SIGTERM", () => shutdown("SIGTERM"));
 
-  return server;
+  return httpServer;
 }
 
 if (require.main === module) {
