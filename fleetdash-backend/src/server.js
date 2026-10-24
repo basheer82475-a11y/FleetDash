@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const mongoose = require("mongoose");
 const { createServer } = require("node:http");
-const { Server: SocketIOServer } = require("socket.io");
+const attachSocketServer = require("./services/socketServer");
 const createApp = require("./app");
 const { connectDatabase } = require("./config/database");
 const { closeWorkerPool } = require("./services/telemetryWorkerPool");
@@ -20,20 +20,8 @@ async function start() {
   // Create one HTTP server for Express and Socket.IO.
   const httpServer = createServer(app);
 
-  const io = new SocketIOServer(httpServer, {
-    cors: {
-      origin: "*",
-    },
-  });
-
-  io.on("connection", (socket) => {
-    console.log(`Socket.IO client connected: ${socket.id}`);
-
-    socket.on("disconnect", () => {
-      console.log(`Socket.IO client disconnected: ${socket.id}`);
-    });
-  });
-
+  const io = attachSocketServer(httpServer);
+  
   httpServer.listen(port, () => {
     console.log(`FleetDash API listening on port ${port}`);
   });

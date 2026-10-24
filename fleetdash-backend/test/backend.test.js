@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { once } = require("node:events");
+const { createServer } = require("node:http");
+const { io: createSocketClient } = require("socket.io-client");
+const attachSocketServer = require("../src/services/socketServer");
 const mongoose = require("mongoose");
 const createApp = require("../src/app");
 const { validateTelemetry } = require("../src/utils/telemetryValidation");
@@ -13,6 +16,31 @@ const valid = {
   vehicleId: "truck-1", speed: 60.126, latitude: 12.9715999, longitude: 77.594566,
   fuelLevel: 72.2, engineTemperature: 88.456, timestamp: "2026-10-21T04:00:00Z",
 };
+
+test("Socket.IO accepts a client connection", async (t) => {
+  const httpServer = createServer();
+  const io = attachSocketServer(httpServer);
+
+  httpServer.listen(0, "127.0.0.1");
+  await once(httpServer, "listening");
+
+  const client = createSocketClient(
+    `http://127.0.0.1:${httpServer.address().port}`,
+    { autoConnect: false, reconnection: false }
+  );
+
+  t.after(async () => {
+    client.close();
+    await new Promise((resolve) => io.close(resolve));
+  });
+
+  const connected = once(client, "connect");
+  client.connect();
+  await connected;
+
+  assert.equal(client.connected, true);
+  client.disconnect();
+});
 
 test("health and unknown routes return appropriate HTTP status", async (t) => {
   const app = createApp({ telemetryService: fakeService(), worker: async (x) => x });
