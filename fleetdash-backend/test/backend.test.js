@@ -92,8 +92,33 @@ test("bucket schema enforces bounded bucket fields and uniqueness", async () => 
   assert.ok(schema.path("readings"));
   assert.ok(schema.path("readingCount").options.max <= 1000);
   assert.ok(schema.indexes().some(([keys, options]) => keys.vehicleId && keys.windowStart && options.unique));
+  assert.ok(schema.indexes().some(([keys]) => keys.vehicleId && keys.bucketStart && keys.bucketEnd));
+  assert.ok(schema.indexes().some(([keys]) => keys.vehicleId && keys.bucketEnd === -1));
+  assert.equal(schema.path("readings").schema.path("eventId").isRequired, true);
   const doc = new TelemetryBucket({ vehicleId: "truck-1", windowStart: new Date(), bucketStart: new Date(), bucketEnd: new Date(), readingCount: 1001, readings: [] });
   await assert.rejects(doc.validate());
+});
+
+test("telemetry validation assigns a unique event ID for persistence verification", () => {
+  const first = validateTelemetry(valid);
+  const second = validateTelemetry(valid);
+  assert.match(first.eventId, /^[0-9a-f-]{36}$/i);
+  assert.notEqual(first.eventId, second.eventId);
+});
+
+test("timestamp retrieval prunes non-overlapping buckets and preserves chronological paging", async () => {
+  let pipeline;
+  const Model = { aggregate: async (value) => { pipeline = value; return []; } };
+  const startTime = "2026-10-21T00:00:00Z";
+  const endTime = "2026-10-22T00:00:00Z";
+  const { getReadings } = require("../src/services/telemetryService");
+  const result = await getReadings("truck-1", { startTime, endTime, limit: 20, offset: 40 }, Model);
+  assert.deepEqual(result, []);
+  assert.deepEqual(pipeline[0].$match, { vehicleId: "truck-1", bucketEnd: { $gte: new Date(startTime) }, bucketStart: { $lte: new Date(endTime) } });
+  assert.ok(pipeline[1].$project.readings.$filter);
+  assert.deepEqual(pipeline.find((stage) => stage.$sort)?.$sort, { "readings.timestamp": 1, _id: 1 });
+  assert.equal(pipeline.find((stage) => stage.$skip)?.$skip, 40);
+  assert.equal(pipeline.find((stage) => stage.$limit)?.$limit, 20);
 });
 
 test("bucket storage safely acknowledges concurrent appends", async () => {

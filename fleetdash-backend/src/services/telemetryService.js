@@ -49,13 +49,28 @@ async function getReadings(vehicleId, { startTime, endTime, limit = 100, offset 
   const parsedOffset = Number(offset);
   if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 500) throw new HttpError(400, "limit must be an integer from 1 to 500");
   if (!Number.isInteger(parsedOffset) || parsedOffset < 0) throw new HttpError(400, "offset must be a non-negative integer");
+  const bucketMatch = { vehicleId };
   const timestampMatch = {};
-  if (start) timestampMatch.$gte = start;
-  if (end) timestampMatch.$lte = end;
+  if (start) {
+    timestampMatch.$gte = start;
+    bucketMatch.bucketEnd = { $gte: start };
+  }
+  if (end) {
+    timestampMatch.$lte = end;
+    bucketMatch.bucketStart = { $lte: end };
+  }
+  const readingFilter = Object.keys(timestampMatch).length
+    ? { $filter: { input: "$readings", as: "reading", cond: {
+      $and: [
+        ...(start ? [{ $gte: ["$$reading.timestamp", start] }] : []),
+        ...(end ? [{ $lte: ["$$reading.timestamp", end] }] : []),
+      ],
+    } } }
+    : "$readings";
   const pipeline = [
-    { $match: { vehicleId } },
+    { $match: bucketMatch },
+    { $project: { vehicleId: 1, readings: readingFilter } },
     { $unwind: "$readings" },
-    ...(Object.keys(timestampMatch).length ? [{ $match: { "readings.timestamp": timestampMatch } }] : []),
     { $sort: { "readings.timestamp": 1, _id: 1 } },
     { $skip: parsedOffset }, { $limit: parsedLimit },
     { $project: { _id: "$readings._id", vehicleId: 1, speed: "$readings.speed", latitude: "$readings.latitude", longitude: "$readings.longitude", fuelLevel: "$readings.fuelLevel", engineTemperature: "$readings.engineTemperature", timestamp: "$readings.timestamp" } },
@@ -66,7 +81,9 @@ async function getReadings(vehicleId, { startTime, endTime, limit = 100, offset 
 async function getLatest(vehicleId, Model = TelemetryBucket) {
   if (!vehicleId || vehicleId.length > 128) throw new HttpError(400, "Invalid vehicleId");
   const [latest] = await Model.aggregate([
-    { $match: { vehicleId } }, { $unwind: "$readings" },
+    { $match: { vehicleId } },
+    { $sort: { bucketEnd: -1, _id: -1 } },
+    { $unwind: "$readings" },
     { $sort: { "readings.timestamp": -1, _id: -1 } }, { $limit: 1 },
     { $project: { _id: "$readings._id", vehicleId: 1, speed: "$readings.speed", latitude: "$readings.latitude", longitude: "$readings.longitude", fuelLevel: "$readings.fuelLevel", engineTemperature: "$readings.engineTemperature", timestamp: "$readings.timestamp" } },
   ]);

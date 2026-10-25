@@ -1,4 +1,5 @@
 const HttpError = require("./httpError");
+const { randomUUID } = require("node:crypto");
 
 function validateTelemetry(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new HttpError(400, "Request body must be a JSON object");
@@ -15,7 +16,7 @@ function validateTelemetry(body) {
   if (engineTemperature < -100 || engineTemperature > 300) throw new HttpError(400, "engineTemperature must be between -100 and 300");
   const date = new Date(timestamp);
   if (timestamp === undefined || !Number.isFinite(date.getTime())) throw new HttpError(400, "timestamp must be a valid date/time");
-  return { vehicleId: vehicleId.trim(), speed, latitude, longitude, fuelLevel, engineTemperature, timestamp: date };
+  return { eventId: randomUUID(), vehicleId: vehicleId.trim(), speed, latitude, longitude, fuelLevel, engineTemperature, timestamp: date };
 }
 
 module.exports = { validateTelemetry };

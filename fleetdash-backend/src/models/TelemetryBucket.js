@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const readingSchema = new mongoose.Schema({
+  eventId: { type: String, required: true },
   speed: { type: Number, required: true, min: 0, max: 500 },
   latitude: { type: Number, required: true, min: -90, max: 90 },
   longitude: { type: Number, required: true, min: -180, max: 180 },
@@ -20,6 +21,7 @@ const bucketSchema = new mongoose.Schema({
 }, { timestamps: true, versionKey: false });
 
 bucketSchema.index({ vehicleId: 1, windowStart: 1, bucketNumber: 1 }, { unique: true });
-bucketSchema.index({ vehicleId: 1, bucketStart: 1 });
+bucketSchema.index({ vehicleId: 1, bucketStart: 1, bucketEnd: 1 });
+bucketSchema.index({ vehicleId: 1, bucketEnd: -1 });
 
 module.exports = mongoose.models.TelemetryBucket || mongoose.model("TelemetryBucket", bucketSchema);
