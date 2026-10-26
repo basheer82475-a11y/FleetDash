@@ -1,5 +1,16 @@
 # React + TypeScript + Vite
 
+The frontend application and its Vite/TypeScript configuration live in this
+directory. Run the following commands from `frontend/`:
+
+```sh
+npm install
+npm run dev
+```
+
+Use `npm run build` to create a production build or `npm run lint` to lint the
+project.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
