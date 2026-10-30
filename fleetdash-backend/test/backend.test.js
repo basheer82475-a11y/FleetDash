@@ -144,7 +144,7 @@ test("timestamp retrieval prunes non-overlapping buckets and preserves chronolog
   assert.deepEqual(result, []);
   assert.deepEqual(pipeline[0].$match, { vehicleId: "truck-1", bucketEnd: { $gte: new Date(startTime) }, bucketStart: { $lte: new Date(endTime) } });
   assert.ok(pipeline[1].$project.readings.$filter);
-  assert.deepEqual(pipeline.find((stage) => stage.$sort)?.$sort, { "readings.timestamp": 1, _id: 1 });
+  assert.deepEqual(pipeline.find((stage) => stage.$sort)?.$sort, { "readings.timestamp": 1, _id: 1, "readings._id":1, });
   assert.equal(pipeline.find((stage) => stage.$skip)?.$skip, 40);
   assert.equal(pipeline.find((stage) => stage.$limit)?.$limit, 20);
 });
