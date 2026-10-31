@@ -1,6 +1,7 @@
 const { validateTelemetry } = require("../utils/telemetryValidation");
 const { processTelemetry } = require("../services/telemetryWorkerPool");
 const telemetryService = require("../services/telemetryService");
+const {publishTelemetry} = require("../services/redisPubSub");
 
 function createTelemetryController(service = telemetryService, worker = processTelemetry) {
   return {
@@ -9,6 +10,14 @@ function createTelemetryController(service = telemetryService, worker = processT
         const validated = validateTelemetry(req.body);
         const processed = await worker(validated);
         const stored = await service.appendReading(processed);
+        try {
+          await publishTelemetry({
+            ...processed,
+            timestamp:stored.timestamp,
+          });
+        } catch (error) {
+          console.error("Telemetry publish failed:",error.message);
+        }
         res.status(201).json({ success: true, message: "Telemetry stored", telemetry: { ...processed, timestamp: stored.timestamp } });
       } catch (error) { next(error); }
     },
