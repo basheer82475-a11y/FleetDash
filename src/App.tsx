@@ -163,7 +163,7 @@ function App() {
 
   return (
     <div className="dashboard-shell">
-      <Sidebar items={navigationItems} selectedKey={selectedKey} onNavigate={navigate} onLogout={handleLogout} />
+      <Sidebar items={navigationItems} selectedKey={selectedKey} onNavigate={navigate} onLogout={handleLogout} isOpen={menuOpen} />
 
       <main className="main-content">
         <TopBar

@@ -13,11 +13,12 @@ type SidebarProps = {
   selectedKey: string
   onNavigate: (key: string) => void
   onLogout: () => void
+  isOpen?: boolean
 }
 
-export function Sidebar({ items, selectedKey, onNavigate, onLogout }: SidebarProps) {
+export function Sidebar({ items, selectedKey, onNavigate, onLogout, isOpen = true }: SidebarProps) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? ' sidebar-open' : ''}`}>
       <div className="brand" role="banner">
         <span className="brand-mark">
           <svg viewBox="0 0 24 24" aria-hidden="true">
