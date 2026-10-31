@@ -284,7 +284,6 @@ async function getReadings(
     {
       $sort: {
         "readings.timestamp": 1,
-        _id: 1,
         "readings._id": 1,
       },
     },
@@ -333,6 +332,16 @@ async function getLatest(
     },
 
     {
+      $sort: {
+        bucketEnd: -1,
+      },
+    },
+
+    {
+      $limit: 1,
+    },
+
+    {
       $project: {
         vehicleId: 1,
         readings: 1,
@@ -346,7 +355,6 @@ async function getLatest(
     {
       $sort: {
         "readings.timestamp": -1,
-        _id: -1,
         "readings._id": -1,
       },
     },
