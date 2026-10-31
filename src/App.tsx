@@ -5,6 +5,7 @@ import RecordDetails from './RecordDetails'
 import { Sidebar, type NavigationItem } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { DashboardPage } from './pages/DashboardPage'
+import { AuthPage } from './pages/AuthPage'
 import { getDashboardSummary, logoutUser, type DashboardSummary } from './fleetApi'
 import './App.css'
 
@@ -54,7 +55,7 @@ function PlaceholderPage({ title, description }: { title: string; description: s
 }
 
 function App() {
-  const [route, setRoute] = useState(() => window.location.hash || '#dashboard')
+  const [route, setRoute] = useState(() => window.location.hash || '#login')
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -66,7 +67,7 @@ function App() {
   const pageTitle = useMemo(() => getPageTitle(route), [route])
 
   const syncHash = useCallback(() => {
-    setRoute(window.location.hash || '#dashboard')
+    setRoute(window.location.hash || '#login')
     setProfileOpen(false)
   }, [])
 
@@ -109,8 +110,8 @@ function App() {
 
     setSearchQuery('')
     setProfileOpen(false)
-    window.location.hash = '#dashboard'
-    setRoute('#dashboard')
+    window.location.hash = '#login'
+    setRoute('#login')
   }, [])
 
   const handleSearchSubmit = useCallback(() => {
@@ -126,6 +127,15 @@ function App() {
   const isDriversList = route === '#drivers'
 
   const content = useMemo(() => {
+    if (route.startsWith('#login')) {
+      const loginRole = route === '#login/user'
+        ? 'user'
+        : route === '#login/partners'
+          ? 'partners'
+          : 'admin'
+      return <AuthPage initialRole={loginRole} onLogin={() => navigate('#dashboard')} />
+    }
+
     if (detailMatch) {
       return <RecordDetails kind={detailMatch[1] as 'vehicles' | 'drivers'} id={decodeURIComponent(detailMatch[2])} navigate={navigate} />
     }
@@ -160,6 +170,10 @@ function App() {
 
     return <PlaceholderPage title={pageTitle} description="This module is currently in preparation." />
   }, [detailMatch, error, isDriversList, isVehiclesList, loadSummary, loading, navigate, pageTitle, route, searchQuery, summary])
+
+  if (route.startsWith('#login')) {
+    return content
+  }
 
   return (
     <div className="dashboard-shell">
