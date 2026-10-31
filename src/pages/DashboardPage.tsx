@@ -1,4 +1,4 @@
-import { Activity, BusFront, CarFront, ShieldCheck, UsersRound, Wrench } from 'lucide-react'
+import { Activity, BusFront, ShieldCheck, UsersRound, Wrench } from 'lucide-react'
 import { StatusCard } from '../components/StatusCard'
 import type { DashboardSummary } from '../fleetApi'
 

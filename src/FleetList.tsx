@@ -3,11 +3,16 @@ import { ArrowUpRight, BusFront, Search, UserRound } from 'lucide-react'
 import { field, getRecords } from './fleetApi'
 import type { FleetRecord } from './fleetApi'
 
-export default function FleetList({ kind, navigate }: { kind: 'vehicles' | 'drivers'; navigate: (hash: string) => void }) {
+export default function FleetList({ kind, navigate, searchQuery = '' }: { kind: 'vehicles' | 'drivers'; navigate: (hash: string) => void; searchQuery?: string }) {
   const [items, setItems] = useState<FleetRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(searchQuery)
+
+  useEffect(() => {
+    setQuery(searchQuery)
+  }, [searchQuery])
+
   useEffect(() => { let active = true; getRecords(kind).then((rows) => { if (active) { setItems(rows); setError('') } }).catch((cause: unknown) => { if (active) setError(cause instanceof Error ? cause.message : `Could not load ${kind}.`) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [kind])
   const rows = items.filter((item) => [field(item, 'id'), field(item, 'name'), field(item, 'make'), field(item, 'model'), field(item, 'firstName'), field(item, 'lastName'), field(item, 'licensePlate', 'registrationNumber'), field(item, 'email')].some((value) => value.toLowerCase().includes(query.trim().toLowerCase())))
   const label = kind === 'vehicles' ? 'Vehicles' : 'Drivers'
