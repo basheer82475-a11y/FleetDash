@@ -133,22 +133,15 @@ bucketSchema.index({
   bucketEnd: 1,
 });
 
-// Index 3: Optimize latest telemetry retrieval
+// Index 3: Optimize latest telemetry retrieval by bucket recency
 bucketSchema.index({
   vehicleId: 1,
   bucketEnd: -1,
 });
 
-// Index 4: Support queries ordered by bucket start time
-bucketSchema.index(
-  {
-    vehicleId: 1,
-    bucketStart: -1,
-  },
-  {
-    name: "vehicle_latest_bucket_idx",
-  }
-);
+// Note: the previous vehicle_latest_bucket_idx was redundant with the
+// vehicleId + bucketEnd sort and was removed so the query planner can keep
+// the more selective latest-bucket access path without duplicate work.
 
 // ==========================================
 // 4. Export TelemetryBucket Model

@@ -22,7 +22,7 @@ Prepare a dedicated test database with representative telemetry buckets, then se
 node scripts/benchmark-queries.js
 ```
 
-The script reports the MongoDB version, bucket document count, installed indexes, repeated client-observed average/P95/P99 latency, and `explain("executionStats")` for range and latest-bucket index paths. `executionTimeMillis` is database execution time; the repeated service timings include round trips and aggregation result transfer. Results depend on the database, host, data distribution, and cache state. No measurements have been recorded in this document because they must come from a real run against the intended test dataset. Treat any query above 5 ms as above target and use its execution stats to guide further work.
+The script reports the MongoDB version, bucket document count, installed indexes, repeated client-observed average/P95/P99 latency, and `explain("executionStats")` for range and latest-bucket index paths. `executionTimeMillis` is database execution time; the repeated service timings include round trips and aggregation result transfer. Results depend on the database, host, data distribution, and cache state. At this point, no verified Atlas benchmark measurements are available because the cluster is not reachable from the current environment. The under-5-ms target remains unverified until the database is whitelisted and the benchmark is executed successfully.
 
 Suggested benchmark record: date/time, environment, MongoDB version, dataset count and time span, index definitions, warm-up policy, iteration count, average/P95/P99, `nReturned`, `totalDocsExamined`, `totalKeysExamined`, and execution time for each explain plan.
 
@@ -59,4 +59,4 @@ node scripts/benchmark-queries.js
 node scripts/verify-event-persistence.js
 ```
 
-The automated suite covers request validation and acknowledgement behavior, worker-thread normalization, bucket bounds and concurrency, index definitions, query range pruning and pagination pipeline, and database connection failure handling. Live query plans, Atlas latency, the under-5-ms target, k6 capacity, and end-to-end omission status remain unverified until the commands are run against a seeded dedicated database and recorded here.
+The automated suite covers request validation and acknowledgement behavior, worker-thread normalization, bucket bounds and concurrency, index definitions, query range pruning and pagination pipeline, and database connection failure handling. Verified status at the time of this review: `npm test` passed with 13 passing tests. Live query plans, Atlas latency, the under-5-ms target, k6 capacity, and end-to-end omission status remain unverified until the commands are run against a reachable dedicated database and recorded here.
