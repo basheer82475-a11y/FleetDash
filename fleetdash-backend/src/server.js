@@ -6,6 +6,7 @@ const attachSocketServer = require("./services/socketServer");
 const {
   connectRedis,
   subscribeTelemetry,
+  subscribeBinaryTelemetry,
   closeRedis,
 } = require("./services/redisPubSub");
 const createApp = require("./app");
@@ -30,6 +31,9 @@ async function start() {
 
   await subscribeTelemetry((payload) => {
     io.emit("telemetry:update",payload);
+  });
+  await subscribeBinaryTelemetry((buffer) => {
+    io.emit("telemetry:binary",buffer);
   });
   
   httpServer.listen(port, () => {
