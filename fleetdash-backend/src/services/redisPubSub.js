@@ -47,6 +47,19 @@ async function subscribeTelemetry(handler) {
   });
 }
 
+async function subscribeBinaryTelemetry(handler) {
+  if (!subscriber?.isReady) {
+    throw new Error("Redis subscriber is not connected");
+  }
+
+  await subscriber.subscribe(
+    "fleetdash:telemetry:binary",
+    (message) => {
+      handler(Buffer.from(message, "base64"));
+    }
+  );
+}
+
 async function closeRedis() {
   await Promise.all([
     publisher?.isOpen ? publisher.quit() : Promise.resolve(),
@@ -54,9 +67,24 @@ async function closeRedis() {
   ]);
 }
 
+async function publishBinaryTelemetry(buffer) {
+  if (!publisher?.isReady) {
+    throw new Error("Redis publisher is not connected");
+  }
+
+  if (!Buffer.isBuffer(buffer)) {
+    throw new TypeError("Binary telemetry must be a Buffer");
+  }
+
+  await publisher.publish("fleetdash:telemetry:binary", buffer.toString("base64")
+);
+}
+
 module.exports = {
   connectRedis,
   publishTelemetry,
   subscribeTelemetry,
+  publishBinaryTelemetry,
+  subscribeBinaryTelemetry,
   closeRedis,
 };

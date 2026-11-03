@@ -3,10 +3,17 @@ const { createTelemetryController } = require("../controllers/telemetryControlle
 
 function telemetryRoutes(dependencies) {
   const router = express.Router();
-  const controller = createTelemetryController(dependencies.telemetryService, dependencies.worker);
+
+  const controller = createTelemetryController(
+    dependencies.telemetryService,
+    dependencies.worker
+  );
+
+  router.post("/binary", controller.createBinary);
   router.post("/", controller.create);
   router.get("/:vehicleId/latest", controller.latest);
   router.get("/:vehicleId", controller.list);
+
   return router;
 }
 
