@@ -5,12 +5,25 @@ const telemetryService = require("../services/telemetryService");
 const {
   publishTelemetry,
   publishBinaryTelemetry,
+  publishGeofenceEvent,
 } = require("../services/redisPubSub");
+
+const {
+  processGeofenceTelemetry,
+} = require("../services/geofenceService");
 
 function createTelemetryController(
   service = telemetryService,
-  worker = processTelemetry
+  worker = processTelemetry,
+  geofenceProcessor
 ) {
+  // Use Geofence DB processing only with the production defaults.
+  const processGeofence =
+    geofenceProcessor ||
+    (service === telemetryService && worker === processTelemetry
+      ? processGeofenceTelemetry
+      : async () => []);
+
   return {
     async createBinary(req, res, next) {
       try {
@@ -47,22 +60,43 @@ function createTelemetryController(
         const processed = await worker(validated);
         const stored = await service.appendReading(processed);
 
+        const telemetryPayload = {
+          ...processed,
+          timestamp: stored.timestamp,
+        };
+
+        // Publish normal telemetry.
         try {
-          await publishTelemetry({
-            ...processed,
-            timestamp: stored.timestamp,
-          });
+          await publishTelemetry(telemetryPayload);
         } catch (error) {
           console.error("Telemetry publish failed:", error.message);
         }
 
-        res.status(201).json({
+        // Detect Geofence ENTER and EXIT events.
+        try {
+          const geofenceEvents = await processGeofence(telemetryPayload);
+
+          for (const event of geofenceEvents) {
+            try {
+              await publishGeofenceEvent(event);
+            } catch (error) {
+              console.error(
+                "Geofence event publish failed:",
+                error.message
+              );
+            }
+          }
+        } catch (error) {
+          console.error(
+            "Geofence processing failed:",
+            error.message
+          );
+        }
+
+        return res.status(201).json({
           success: true,
           message: "Telemetry stored",
-          telemetry: {
-            ...processed,
-            timestamp: stored.timestamp,
-          },
+          telemetry: telemetryPayload,
         });
       } catch (error) {
         next(error);
@@ -83,7 +117,7 @@ function createTelemetryController(
           { startTime, endTime, limit, offset }
         );
 
-        res.status(200).json({
+        return res.status(200).json({
           success: true,
           vehicleId: req.params.vehicleId,
           count: readings.length,

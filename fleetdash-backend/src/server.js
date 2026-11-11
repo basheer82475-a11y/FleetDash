@@ -3,12 +3,15 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const { createServer } = require("node:http");
 const attachSocketServer = require("./services/socketServer");
+
 const {
   connectRedis,
   subscribeTelemetry,
   subscribeBinaryTelemetry,
+  subscribeGeofenceEvents,
   closeRedis,
 } = require("./services/redisPubSub");
+
 const createApp = require("./app");
 const { connectDatabase } = require("./config/database");
 const { closeWorkerPool } = require("./services/telemetryWorkerPool");
@@ -27,15 +30,24 @@ async function start() {
   const httpServer = createServer(app);
 
   const io = attachSocketServer(httpServer);
+
   await connectRedis();
 
+  // Subscribe to normal telemetry events.
   await subscribeTelemetry((payload) => {
-    io.emit("telemetry:update",payload);
+    io.emit("telemetry:update", payload);
   });
+
+  // Subscribe to binary telemetry events.
   await subscribeBinaryTelemetry((buffer) => {
-    io.emit("telemetry:binary",buffer);
+    io.emit("telemetry:binary", buffer);
   });
-  
+
+  // Subscribe to geofence events.
+  await subscribeGeofenceEvents((event) => {
+    io.emit("geofence:alert", event);
+  });
+
   httpServer.listen(port, () => {
     console.log(`FleetDash API listening on port ${port}`);
   });

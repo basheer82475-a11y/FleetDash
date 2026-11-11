@@ -11,19 +11,30 @@ const {
 } = require("../src/services/redisPubSub");
 
 function receiveOnce(subscribe) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error("Redis message not received within 5 seconds"));
-    }, 5000);
+  let resolveMessage;
+  let rejectMessage;
 
-    subscribe((message) => {
-      clearTimeout(timer);
-      resolve(message);
-    }).catch((error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
+  const message = new Promise((resolve, reject) => {
+    resolveMessage = resolve;
+    rejectMessage = reject;
   });
+
+  const timer = setTimeout(() => {
+    rejectMessage(
+      new Error("Redis message not received within 5 seconds")
+    );
+  }, 5000);
+
+  const ready = subscribe((data) => {
+    clearTimeout(timer);
+    resolveMessage(data);
+  }).catch((error) => {
+    clearTimeout(timer);
+    rejectMessage(error);
+    throw error;
+  });
+
+  return { ready, message };
 }
 
 test("Redis Pub/Sub handles JSON and binary telemetry", async () => {
@@ -37,17 +48,28 @@ test("Redis Pub/Sub handles JSON and binary telemetry", async () => {
     };
 
     const jsonReceived = receiveOnce(subscribeTelemetry);
+
+    // Wait until subscriber is ready before publishing.
+    await jsonReceived.ready;
+
     await publishTelemetry(jsonData);
 
-    assert.deepEqual(await jsonReceived, jsonData);
+    assert.deepEqual(await jsonReceived.message, jsonData);
 
     // Test binary telemetry
     const originalBuffer = Buffer.from("FleetDash binary test");
 
     const binaryReceived = receiveOnce(subscribeBinaryTelemetry);
+
+    // Wait until subscriber is ready before publishing.
+    await binaryReceived.ready;
+
     await publishBinaryTelemetry(originalBuffer);
 
-    assert.deepEqual(await binaryReceived, originalBuffer);
+    assert.deepEqual(
+      await binaryReceived.message,
+      originalBuffer
+    );
 
     // Test invalid input
     await assert.rejects(
