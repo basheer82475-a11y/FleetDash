@@ -1,7 +1,14 @@
 const express = require("express");
 const cors = require("cors");
+
 const telemetryRoutes = require("./routes/telemetryRoutes");
-const { notFound, errorHandler } = require("./middleware/errorHandler");
+const geofenceRoutes = require("./routes/geofenceRoutes");
+
+const {
+  notFound,
+  errorHandler,
+} = require("./middleware/errorHandler");
+
 const requestLogger = require("./middleware/requestLogger");
 
 function createApp({ telemetryService, worker } = {}) {
@@ -10,7 +17,6 @@ function createApp({ telemetryService, worker } = {}) {
   app.use(cors());
   app.use(express.json({ limit: "32kb" }));
 
-  // Log every incoming request
   app.use(requestLogger);
 
   app.get("/", (req, res) =>
@@ -32,6 +38,8 @@ function createApp({ telemetryService, worker } = {}) {
     "/api/telemetry",
     telemetryRoutes({ telemetryService, worker })
   );
+
+  app.use("/api/geofences", geofenceRoutes);
 
   app.use(notFound);
   app.use(errorHandler);
